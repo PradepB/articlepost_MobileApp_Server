@@ -67,7 +67,7 @@ app.use('/uploadImg', upload)
 
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname + '/public/client/index.html'))
+  res.send("hello")
 })
 
 
