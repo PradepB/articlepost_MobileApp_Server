@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var usermodel = require("../models/usermodel")
+var postmodel = require("../models/postmodel")
 var ObjectID = require('mongodb').ObjectID;
 var crypto = require('crypto');
 var util = require("../utils/util");
@@ -172,7 +173,59 @@ router.get('/getAllUser', (req, res, next) => {
 
 router.post("/samplereactnativePost", (req, res) => {
   console.log(req.body)
-  res.status(200).send(req.body);
+  try {
+    let useData = req.body
+    let userStore = {
+      title: useData.title,
+      textareaValue: useData.textareaValue,
+      CreatedAt: new Date(),
+      userName: useData.userName,
+      userId: ObjectID(useData.userId),
+    };
+  
+    const vCreatePost = postmodel.createPost('posts', userStore)
+    vCreatePost.then((data) => {
+      console.log(data)
+      res.status(200).send(data)
+    }).catch(err => {
+      util.writeLog('createUser Error', 'post:/users/createUser');
+      var error = new Error();
+      error.success = false;
+      error.status = 404;
+      error.message = 'Post not Created';
+      res.send(error);
+    })
+  } catch (e) {
+    console.log(err)
+    util.writeLog('Post Error', 'post:/users/samplereactnativePost');
+    var error = new Error();
+    error.success = false;
+    error.status = 404;
+    error.message = 'Post not Created';
+    res.send(error);
+  }
+})
+
+router.post('/getAllPost',(req,res)=>{
+
+  let useData = req.body
+  let userStore = {
+    userName: useData.userName,
+    userId: ObjectID(useData.userId),
+  };
+
+  const vGetAllPost = postmodel.retrieveAllPost('posts', userStore)
+  vGetAllPost.then((data) => {
+    console.log(data)
+    res.status(200).send(data)
+  }).catch(err => {
+    util.writeLog('createUser Error', 'post:/users/createUser');
+    var error = new Error();
+    error.success = false;
+    error.status = 404;
+    error.message = 'Post not Found';
+    res.send(error);
+  })
 })
 
 

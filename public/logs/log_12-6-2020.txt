@@ -1,0 +1,5 @@
+
+    ************* Date : 12 -  6 - 2020 - 20 :  51 : 42
+    IP Address: 124.7.41.184 PORT: 8080 Service Url: post:/users/createUser
+    Message: createUser Error *************
+    

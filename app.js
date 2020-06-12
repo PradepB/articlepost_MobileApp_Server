@@ -61,7 +61,7 @@ app.use(function (req, res, next) {
 
 
 app.use('/tokenGen', tokenGen);
-app.use('/users',  usersRouter);
+app.use('/users',  auth, usersRouter);
 app.use('/uploadImg', upload)
 
 
