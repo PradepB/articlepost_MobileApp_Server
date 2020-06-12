@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: routes/users.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: routes/users.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>var express = require('express');
+var router = express.Router();
+var usermodel = require("../models/usermodel")
+var ObjectID = require('mongodb').ObjectID;
+var crypto = require('crypto');
+var util = require("../utils/util");
+var secretKey = require("../config/config")
+var jwt = require('jsonwebtoken');
+
+/**
+ * 
+ * @module UserModule
+ * @function
+ * @path {POST} /users/createUser
+ * @param req {Object} The req object represents the HTTP request.
+ * @param res {Object} The res object represents the HTTP response.
+ * @param req.body {Object} The JSON payload. Its contain user details to generate token.
+ * @param {Function} next
+ * @body {String}
+ * @return {Object} returns genrated token
+ */
+router.post('/createUser', (req, res) => {
+  var data = req.body;
+  if (!data.email || !data.password) {
+    util.writeLog('Invalid Data! username and password both are required', 'post:/merck/users');
+    var error = new Error();
+    error.success = false;
+    error.status = 400;
+    error.message = 'Invalid Data! username and password both are required';
+    res.send(error);
+  }
+
+  var salt = '1234567890'; // default salt
+  var hash = crypto.pbkdf2Sync(data.password, salt, 1000, 24, 'sha512');
+  var userStore = {};
+
+  userStore = {
+    firstname: data.firstname,
+    lastname: data.lastname,
+    mobile: data.mobile,
+    username: data.email,
+    email: data.email,
+    role: data.role,
+    password: (Buffer.from(hash).toString('hex')),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    status: data.status,
+    createdBy: ObjectID(data.createdBy),
+  };
+  const vCreateUser = usermodel.createUser('users', userStore)
+  vCreateUser.then((data) => {
+
+    res.status(200).send(data)
+  }).catch(err => {
+    util.writeLog('createUser Error', 'post:/users/createUser');
+    var error = new Error();
+    error.success = false;
+    error.status = 404;
+    error.message = 'User not created';
+    res.send(error);
+  })
+
+})
+
+router.put('/updateUser/:id', (req, res) => {
+  let useData = req.body
+
+  let userStore = {
+    firstname: useData.firstname,
+    lastname: useData.lastname,
+    mobile: useData.mobile,
+    username: useData.email,
+    email: useData.email,
+    role: useData.role,
+    updatedAt: new Date(),
+    status: useData.status,
+    updatedBy: ObjectID(useData.updatedBy),
+  };
+
+
+
+  if ('password' in useData) {
+    var salt = '1234567890'; // default salt
+    var hash = crypto.pbkdf2Sync(useData.password, salt, 1000, 24, 'sha512');
+    userStore['password'] = (Buffer.from(hash).toString('hex'))
+  }
+
+  const vUpdateUser = usermodel.updateUser('users', userStore, req.params.id)
+  vUpdateUser.then((data) => {
+    res.status(200).send(data)
+  })
+})
+
+router.get('/getUser/:id', (req, res) => {
+  if (req.params.id) {
+    var id = req.params.id;
+    var vGetUser = usermodel.getSingleUser('users', id)
+    vGetUser.then((data) => {
+      if (data.message) {
+        res.status(404).send(data)
+      }
+      res.status(200).send(data)
+    }).catch(err => {
+      util.writeLog('getUser Error', 'get:/users/getUser/:id');
+      var error = new Error();
+      error.success = false;
+      error.status = 404;
+      error.message = 'User not found ';
+      res.send(error);
+    })
+  } else {
+    util.writeLog('getUser Error', 'get:/users/getUser/:id');
+    var error = new Error();
+    error.success = false;
+    error.status = 404;
+    error.message = 'Userid not found ';
+    res.send(error);
+  }
+
+})
+
+router.delete('/deleteUser/:id', (req, res) => {
+  if (req.params.id != undefined || req.params.id != 'undefined' || req.params.id != null) {
+    let id = req.params.id;
+
+    var vDeleteUser = usermodel.deleteUser('users', id)
+    vDeleteUser.then((data) => {
+      res.status(200).send(data)
+    }).catch(err => {
+      util.writeLog('delete Error', 'delete:/users/deleteUser/:id');
+      var error = new Error();
+      error.success = false;
+      error.status = 404;
+      error.message = 'User not found ';
+      res.send(error);
+    })
+  } else {
+    util.writeLog('delete Error', 'delete:/users/deleteUser/:id');
+    var error = new Error();
+    error.success = false;
+    error.status = 404;
+    error.message = 'User id not found ';
+    res.send(error);
+  }
+})
+
+router.get('/getAllUser', (req, res, next) => {
+  const userLimit=req.body
+  console.log(userLimit)
+  var vUserModel = usermodel.retrieveAllUsers('users', '')
+  vUserModel.then(function (data) {
+    console.log(data.length)
+    if (data.length > 0) {
+      let result = {
+        success: true,
+        data: data
+      }
+      res.status(200).send(result);
+    } else {
+      let result = {
+        success: false,
+        data: ''
+      }
+      res.status(200).send(result);
+    }
+  }).catch(err => {
+    console.log(err)
+    util.writeLog('get Error', 'get:/users/getAllUser');
+    var error = new Error();
+    error.success = false;
+    error.status = 404;
+    error.message = 'Users not found ';
+    res.send(error);
+  })
+});
+
+
+
+
+module.exports = router;
+
+
+/**
+ * @typedef {object} EnvironmentConfig
+ * @property {string} baseUrl - Base url for the environment.
+ * @property {string} publicKey - Public key used to verify signatures of responses.
+ */
+/**
+ * Contains base configuration for different environments.
+ * @property {EnvironmentConfig} staging - Staging configuration
+ * @property {EnvironmentConfig} production - Production configuration
+ * @type {object}
+ */
+const CONFIG = {
+  staging: {
+    baseUrl: 'https://wallet-api.staging.celsius.network',
+    publicKey: 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUF4K0VBRkUvQVlUNnQ2UVBERWl0WApDc0FWenZSdFhQUzVaMS85c0JyUEpVSWF5UDZqbHZQRnFsWDFPdCtrcUZYWGtweUQ2V1Arak5nMmNiWlg3MXVDCkFKdThTMjhaTnk3U2N3ZTZiQnJkMllzdlBBM2VCWGtKU2QrTHc0MjhBZEIxQzAxYUs1R09tejJsQTZWTktHM3EKUXQyWWdmbTkwWURxcTZDV1h1ZUJWd05uUUdqQi9lMTdxOVdTTk41VG1QM0tBcWlFc0tMTHM2a1ljVHdDbjZYYwpnSWd2K3VXZUtmTnVMbDgzNUpGUUFMc2FBMm5lc0JPODRHbE45ZllxelhsWXFFMEc3bU1kUkRhZ2FSNlJQZXFPCktlQzVLbXdydUowajYvWWR5dGl2KzRqUFZCcTFIVm5kTzFvaFQ3d3cyeEVyZXpjeGdvM1JHd2dMNHJBUTRyU0MKWFFJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t'
+  },
+  production: {
+    baseUrl: 'https://wallet-api.celsius.network',
+    publicKey: 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUF3MklLcms5azV6aHlnZ091bWtQZQpsd2hlMkxkL1BGOHN6djdDQzFVTUdFMlc0Z2RBWk81b2VkbmVDQXZoSkZMdE1kRm9aNmpUdXBGOSsrUTZZSWZSCnR1Q0VTdlRLWmVhMmhESHVjbGlGbXVoZ1ZQVEppVHZCTWozSVhZajhQTmNyRWZaV1VaRzVKU2ZGZ1Q1ck1YMzAKc2dWbGJBcFJFOXdKY3FCMi9Jb1RsdTgwKzFQVXpMUnlPbFJQM2czMkwzT3dacTBHWGpXaUx5c01OMm81dHQyaApsNUNYQjRPVW5HMVBDbzBIY2hRd25NdXo1UHE1Wk9EYXhhNmVka01hNVNKS1p1Tzc0NDMzdnlVb3NWNXRXSkNpCmc1ZEhkNkJWbCtZS1lkUUgyenEwcDhJakUvblU0Rk9GY3N0NFU4WDJndlIyNU5hTzY2UHFYWWNhWnFYdUY5UE0KVndJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg=='
+  }
+}
+module.exports = {
+  CONFIG
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CONFIG">CONFIG</a></li><li><a href="global.html#crypto">crypto</a></li><li><a href="global.html#TokenGenrationModule">TokenGenrationModule</a></li><li><a href="global.html#uploadModule">uploadModule</a></li><li><a href="global.html#UserModule">UserModule</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.4</a> on Thu Apr 30 2020 19:12:43 GMT+0530 (India Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: models/usermodel.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: models/usermodel.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>var ObjectID = require('mongodb').ObjectID;
+    /**
+ * User moel.
+ * @module User
+ */
+module.exports = {
+
+    /**
+      * @param {string} collectionName - Its contain collection name.
+      * @param {Object} data - data contain to create user.
+      * @return {Object} it return the success or failure of user creation
+      */
+    createUser: (collectionName, data) => {
+        let db = global.db;
+        return new Promise((resolve, reject) => {
+            db.collection(collectionName).find({ username: data.username }).toArray((err, res) => {
+                if (err) { reject(err) }
+                if (res.length == 0) {
+                    db.collection(collectionName).insertOne(data, (err, dataval) => {
+                        if (err) { reject(err) }
+                        else {
+                            let result = {
+                                success: true,
+                                status: 200,
+                                message: "User created successful!"
+                            }
+                            resolve(result)
+                        }
+                    })
+                } else {
+                    const result = {
+                        success: false,
+                        status: 403,
+                        message: "Email already added."
+                    }
+                    resolve(result)
+                }
+            })
+        })
+    },
+        /**
+      * @param {string} collectionName - Its contain collection name.
+      * @param {Object} data - data contain to create user.
+      * @param {string} id - id represent which user data want to update.
+      * @return {Object} it return the success or failure of user updation
+      */
+    updateUser: (collectionName, data, id) => {
+        let db = global.db;
+        return new Promise((resolve, reject) => {
+            db.collection(collectionName).find({ _id: ObjectID(id) }).toArray((err, res) => {
+                if (err) { reject(err) }
+                if (res.length == 0) {
+                    let result = {
+                        success: false,
+                        status: 403,
+                        message: "User not found."
+                    }
+                    resolve(result)
+                } else {
+                    db.collection(collectionName).updateMany({ _id: ObjectID(id) }, {
+                        $set: data
+                    }, {
+                        safe: true
+                    }, (err, res) => {
+                        if (err) { reject(err) }
+                        else {
+                            let result = {
+                                success: true,
+                                status: 200,
+                                message: "Successfully Updated!"
+                            }
+                            resolve(result)
+
+
+                        }
+
+                    })
+                }
+            })
+        })
+    },
+            /**
+      * @param {string} collectionName - Its contain collection name.
+      * @param {string} id - id represent which user data want to get.
+      * @return {Object} it return the specific user
+      */
+    getSingleUser: (collectionName, id) => {
+        let db = global.db;
+        return new Promise((resolve, reject) => {
+            db.collection(collectionName).find({ _id: ObjectID(id) }).toArray((err, res) => {
+                if (err) { reject(err) }
+                if (res.length == 0) {
+                    let result = {
+                        message: "User not found."
+                    }
+                    resolve(result)
+                } else {
+                    resolve(res)
+                }
+            })
+        })
+    },
+    deleteUser: (collectionName, id) => {
+        let db = global.db;
+        return new Promise((resolve, reject) => {
+            db.collection(collectionName).find({ _id: ObjectID(id) }).toArray((err, res) => {
+                if (err) { reject(err) }
+                if (res.length == 0) {
+                    let result = {
+                        success: false,
+                        status: 403,
+                        message: "User not found."
+                    }
+                    resolve(result)
+                } else {
+                    db.collection(collectionName).deleteOne({ _id: ObjectID(id) }, (err, res) => {
+                        if (err) {
+                            reject(err)
+                        }
+                        else {
+
+                            let result = {
+                                success: true,
+                                status: 200,
+                                message: "User Deleted successfully!."
+                            }
+                            resolve(result)
+
+
+                        }
+                    })
+                }
+            })
+        })
+    },
+    retrieveAllUsers: (collectionName, userLimit) => {
+        let db = global.db;
+        return new Promise((resolve, reject) => {
+            db.collection(collectionName).find().toArray((err, res) => {
+                if (err) {
+                    reject(err)
+                }
+                resolve(res);
+            });
+
+
+        })
+    },
+
+    validateUser: function (collectionName, data) {
+        return new Promise((resolve, reject) => {
+            var db = global.db;
+            var query = {
+                username: data.username,
+                password: data.password
+            };
+
+            db.collection(collectionName).find(query).toArray(function (err, res) {
+                if (err) {
+                    reject(err)
+                }
+                else {
+                    let result = {
+                        success: true,
+                        status: 200,
+                        message: 'Login Success!',
+                        response: res
+                    }
+                    resolve(result);
+                }
+            });
+        })
+    }
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-User.html">User</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CONFIG">CONFIG</a></li><li><a href="global.html#crypto">crypto</a></li><li><a href="global.html#TokenGenrationModule">TokenGenrationModule</a></li><li><a href="global.html#uploadModule">uploadModule</a></li><li><a href="global.html#UserModule">UserModule</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.4</a> on Thu Apr 30 2020 19:12:43 GMT+0530 (India Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
